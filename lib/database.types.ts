@@ -8,7 +8,7 @@
 export type Plan = 'free' | 'premium'
 export type SwapStatus = 'pending' | 'accepted' | 'declined' | 'completed'
 
-export interface Profile {
+export type Profile = {
   id: string
   name: string
   avatar_emoji: string
@@ -19,7 +19,7 @@ export interface Profile {
   created_at: string
 }
 
-export interface SkillListing {
+export type SkillListing = {
   id: string
   user_id: string
   title: string
@@ -29,7 +29,7 @@ export interface SkillListing {
   created_at: string
 }
 
-export interface WantedSkill {
+export type WantedSkill = {
   id: string
   user_id: string
   title: string
@@ -37,7 +37,7 @@ export interface WantedSkill {
   created_at: string
 }
 
-export interface SwapRequest {
+export type SwapRequest = {
   id: string
   from_user_id: string
   to_user_id: string
@@ -47,7 +47,7 @@ export interface SwapRequest {
   created_at: string
 }
 
-export interface Message {
+export type Message = {
   id: string
   sender_id: string
   receiver_id: string
@@ -56,7 +56,7 @@ export interface Message {
   read_at: string | null
 }
 
-export interface Rating {
+export type Rating = {
   id: string
   swap_request_id: string
   rater_user_id: string
@@ -69,42 +69,52 @@ export interface Rating {
 type Row<T> = T
 type Insert<T, Optional extends keyof T> = Omit<T, Optional> & Partial<Pick<T, Optional>>
 
-export interface Database {
+/** supabase-js expects every table to declare its relationships. */
+type Rel = []
+
+export type Database = {
   public: {
     Tables: {
       profiles: {
         Row: Row<Profile>
         Insert: Insert<Profile, 'name' | 'avatar_emoji' | 'bio' | 'plan' | 'stripe_customer_id' | 'stripe_subscription_id' | 'created_at'>
         Update: Partial<Profile>
+        Relationships: Rel
       }
       skill_listings: {
         Row: Row<SkillListing>
         Insert: Insert<SkillListing, 'id' | 'description' | 'active' | 'created_at'>
         Update: Partial<SkillListing>
+        Relationships: Rel
       }
       wanted_skills: {
         Row: Row<WantedSkill>
         Insert: Insert<WantedSkill, 'id' | 'created_at'>
         Update: Partial<WantedSkill>
+        Relationships: Rel
       }
       swap_requests: {
         Row: Row<SwapRequest>
         Insert: Insert<SwapRequest, 'id' | 'message' | 'status' | 'created_at'>
         Update: Partial<SwapRequest>
+        Relationships: Rel
       }
       messages: {
         Row: Row<Message>
         Insert: Insert<Message, 'id' | 'created_at' | 'read_at'>
         Update: Partial<Message>
+        Relationships: Rel
       }
       ratings: {
         Row: Row<Rating>
         Insert: Insert<Rating, 'id' | 'comment' | 'created_at'>
         Update: Partial<Rating>
+        Relationships: Rel
       }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
     Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
   }
 }

@@ -113,6 +113,37 @@
            px-3 py-1 text-xs font-medium text-muted;
   }
 
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink
+           placeholder:text-muted/70 transition
+           focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15
+           disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .textarea {
+    @apply input min-h-[6rem] resize-y leading-relaxed;
+  }
+
+  .alert {
+    @apply flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm;
+  }
+
+  .alert-error {
+    @apply alert border-red-500/25 bg-red-500/10 text-red-700 dark:text-red-300;
+  }
+
+  .alert-info {
+    @apply alert border-brand-500/25 bg-brand-500/10 text-brand-700;
+  }
+
+  .alert-success {
+    @apply alert border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300;
+  }
+
   .gradient-text {
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(
