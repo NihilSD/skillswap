@@ -96,7 +96,7 @@ docs/plan-limits.md  Free vs Premium limits — the single source of truth
 ## Build stages
 
 - [x] **Stage 0** — Scaffold, Supabase clients, design system, landing page
-- [ ] Stage 1 — Database schema + RLS migration
+- [x] **Stage 1** — Database schema, signup trigger + RLS policies
 - [ ] Stage 2 — Auth (sign up / sign in)
 - [ ] Stage 3 — Profile & skill listings
 - [ ] Stage 4 — Discover / marketplace
