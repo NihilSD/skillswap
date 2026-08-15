@@ -69,6 +69,20 @@ export type Rating = {
 type Row<T> = T
 type Insert<T, Optional extends keyof T> = Omit<T, Optional> & Partial<Pick<T, Optional>>
 
+/** A row returned by the discover_listings() Postgres function. */
+export type DiscoverListing = {
+  id: string
+  title: string
+  category: string
+  description: string
+  created_at: string
+  teacher_id: string
+  name: string
+  avatar_emoji: string
+  bio: string | null
+  match_score: number
+}
+
 /** supabase-js expects every table to declare its relationships. */
 type Rel = []
 
@@ -113,7 +127,12 @@ export type Database = {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      discover_listings: {
+        Args: { p_search?: string | null; p_category?: string | null; p_sort?: string | null }
+        Returns: DiscoverListing[]
+      }
+    }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }

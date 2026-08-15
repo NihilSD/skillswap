@@ -99,7 +99,7 @@ docs/plan-limits.md  Free vs Premium limits — the single source of truth
 - [x] **Stage 1** — Database schema, signup trigger + RLS policies
 - [x] **Stage 2** — Supabase Auth, protected routes, navbar with plan badge
 - [x] **Stage 3** — Profile editing, skill listings, DB-enforced plan caps
-- [ ] Stage 4 — Discover / marketplace
+- [x] **Stage 4** — Discover marketplace with DB-gated Premium filters
 - [ ] Stage 5 — Swap requests & ratings
 - [ ] Stage 6 — Realtime messaging
 - [ ] Stage 7 — Leaderboard

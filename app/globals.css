@@ -85,9 +85,9 @@
   }
 
   .btn {
-    @apply inline-flex select-none items-center justify-center gap-2 rounded-full px-5 py-2.5
-           text-sm font-semibold transition-all duration-200 disabled:pointer-events-none
-           disabled:opacity-50;
+    @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full
+           px-5 py-2.5 text-sm font-semibold transition-all duration-200
+           disabled:pointer-events-none disabled:opacity-50;
   }
 
   .btn-primary {
