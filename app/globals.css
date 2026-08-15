@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: 248 250 252;
+    --surface: 255 255 255;
+    --surface-2: 245 246 251;
+    --line: 226 231 240;
+    --ink: 15 20 40;
+    --muted: 100 112 138;
+
+    --brand-50: 238 240 255;
+    --brand-100: 224 228 255;
+    --brand-400: 129 132 250;
+    --brand-500: 99 102 241;
+    --brand-600: 79 70 229;
+    --brand-700: 67 56 202;
+    --accent: 245 158 11;
+  }
+
+  .dark {
+    --bg: 8 9 17;
+    --surface: 18 20 32;
+    --surface-2: 25 27 43;
+    --line: 42 45 66;
+    --ink: 236 238 248;
+    --muted: 146 152 178;
+
+    --brand-50: 32 34 66;
+    --brand-100: 44 46 88;
+    --brand-400: 145 148 255;
+    --brand-500: 124 126 250;
+    --brand-600: 108 108 245;
+    --brand-700: 139 141 255;
+    --accent: 251 191 36;
+  }
+
+  * {
+    border-color: rgb(var(--line));
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: rgb(var(--bg));
+    color: rgb(var(--ink));
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: rgb(var(--brand-500) / 0.24);
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--brand-500));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-6 lg:px-8;
+  }
+
+  .card {
+    @apply rounded-2xl border border-line bg-surface shadow-soft;
+  }
+
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-full px-5 py-2.5
+           text-sm font-semibold transition-all duration-200 disabled:pointer-events-none
+           disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn text-white shadow-glow hover:-translate-y-0.5 active:translate-y-0;
+    background-image: linear-gradient(
+      120deg,
+      rgb(var(--brand-600)),
+      rgb(var(--brand-500)) 55%,
+      rgb(var(--brand-400))
+    );
+  }
+
+  .btn-secondary {
+    @apply btn border border-line bg-surface text-ink hover:bg-surface-2 hover:-translate-y-0.5;
+  }
+
+  .btn-ghost {
+    @apply btn text-muted hover:bg-surface-2 hover:text-ink;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2
+           px-3 py-1 text-xs font-medium text-muted;
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      100deg,
+      rgb(var(--brand-600)),
+      rgb(var(--brand-400)) 45%,
+      rgb(var(--accent))
+    );
+  }
+}
+
+/* Decorative aurora blobs used behind hero sections. */
+.aurora {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.grid-fade {
+  background-image: linear-gradient(rgb(var(--line) / 0.55) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--line) / 0.55) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+}
