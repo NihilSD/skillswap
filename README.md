@@ -100,8 +100,8 @@ docs/plan-limits.md  Free vs Premium limits — the single source of truth
 - [x] **Stage 2** — Supabase Auth, protected routes, navbar with plan badge
 - [x] **Stage 3** — Profile editing, skill listings, DB-enforced plan caps
 - [x] **Stage 4** — Discover marketplace with DB-gated Premium filters
-- [ ] Stage 5 — Swap requests & ratings
-- [ ] Stage 6 — Realtime messaging
-- [ ] Stage 7 — Leaderboard
+- [x] **Stage 5** — Swap requests with daily limits, accept/complete/rate flow
+- [x] **Stage 6** — Private messaging over Supabase Realtime
+- [x] **Stage 7** — Leaderboard aggregated in Postgres
 - [ ] Stage 8 — Stripe billing
 - [ ] Stage 9 — Polish & deployment checklist

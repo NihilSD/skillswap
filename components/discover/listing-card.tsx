@@ -4,13 +4,18 @@ import { useState } from 'react'
 import { CATEGORY_EMOJI } from '@/lib/categories'
 import { RequestModal } from '@/components/discover/request-modal'
 import type { DiscoverListing } from '@/lib/database.types'
+import type { Plan } from '@/lib/plan'
 
 export function ListingCard({
   listing,
   showMatch,
+  viewerId,
+  plan,
 }: {
   listing: DiscoverListing
   showMatch: boolean
+  viewerId: string
+  plan: Plan
 }) {
   const [open, setOpen] = useState(false)
 
@@ -52,7 +57,9 @@ export function ListingCard({
         </button>
       </article>
 
-      {open && <RequestModal listing={listing} onClose={() => setOpen(false)} />}
+      {open && (
+        <RequestModal listing={listing} viewerId={viewerId} plan={plan} onClose={() => setOpen(false)} />
+      )}
     </>
   )
 }

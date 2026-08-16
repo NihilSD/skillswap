@@ -72,7 +72,12 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
           <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {listings.map((listing) => (
               <li key={listing.id}>
-                <ListingCard listing={listing} showMatch={premium && sort === 'match'} />
+                <ListingCard
+                  listing={listing}
+                  showMatch={premium && sort === 'match'}
+                  viewerId={profile.id}
+                  plan={profile.plan}
+                />
               </li>
             ))}
           </ul>

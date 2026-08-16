@@ -83,6 +83,26 @@ export type DiscoverListing = {
   match_score: number
 }
 
+/** A row returned by get_leaderboard(). */
+export type LeaderboardRow = {
+  rank: number
+  user_id: string
+  name: string
+  avatar_emoji: string
+  completed_swaps: number
+  avg_rating: number | null
+  ratings_count: number
+  skills: string[]
+}
+
+/** A row returned by get_user_rank(). */
+export type UserRank = {
+  rank: number
+  completed_swaps: number
+  avg_rating: number | null
+  ratings_count: number
+}
+
 /** supabase-js expects every table to declare its relationships. */
 type Rel = []
 
@@ -132,6 +152,15 @@ export type Database = {
         Args: { p_search?: string | null; p_category?: string | null; p_sort?: string | null }
         Returns: DiscoverListing[]
       }
+      swap_requests_sent_today: { Args: { p_user_id: string }; Returns: number }
+      max_swap_requests_per_day: { Args: { p_user_id: string }; Returns: number }
+      swap_request_reset_at: { Args: { p_user_id: string }; Returns: string | null }
+      messages_sent_today: { Args: { p_user_id: string }; Returns: number }
+      max_messages_per_day: { Args: { p_user_id: string }; Returns: number | null }
+      message_reset_at: { Args: { p_user_id: string }; Returns: string | null }
+      can_send_message: { Args: { p_user_id: string }; Returns: boolean }
+      get_leaderboard: { Args: { p_limit?: number }; Returns: LeaderboardRow[] }
+      get_user_rank: { Args: { p_user_id: string }; Returns: UserRank[] }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
