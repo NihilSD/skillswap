@@ -91,6 +91,7 @@ lib/supabase/        client.ts (browser) and server.ts (SSR) Supabase clients
 middleware.ts        Refreshes the Supabase auth session on every request
 supabase/            Supabase CLI config and migrations
 docs/plan-limits.md  Free vs Premium limits — the single source of truth
+docs/enforcement-audit.md  Where each plan limit is actually enforced
 ```
 
 ## Build stages
@@ -103,5 +104,129 @@ docs/plan-limits.md  Free vs Premium limits — the single source of truth
 - [x] **Stage 5** — Swap requests with daily limits, accept/complete/rate flow
 - [x] **Stage 6** — Private messaging over Supabase Realtime
 - [x] **Stage 7** — Leaderboard aggregated in Postgres
-- [ ] Stage 8 — Stripe billing
-- [ ] Stage 9 — Polish & deployment checklist
+- [x] **Stage 8** — Stripe Checkout, webhook and billing portal
+- [x] **Stage 9** — Enforcement audit, usage widget, deployment checklist
+
+---
+
+## Stripe setup (Stage 8)
+
+### Environment variables
+
+| Variable | Where it comes from | Exposed to browser? |
+| --- | --- | --- |
+| `STRIPE_SECRET_KEY` | Stripe dashboard → Developers → API keys → **Secret key** | **No** |
+| `STRIPE_PREMIUM_PRICE_ID` | Products → create a **$9/month recurring** price → copy its `price_…` id | **No** |
+| `STRIPE_WEBHOOK_SECRET` | `stripe listen` locally, or the endpoint's signing secret in the dashboard | **No** |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API → **service_role** | **No** — required by the webhook |
+
+There is no publishable key in this app: Checkout is created server-side and
+the browser is simply redirected to Stripe's hosted page, so nothing Stripe
+related ever needs to reach the client bundle.
+
+### Testing the webhook locally
+
+```bash
+# 1. Install and log in
+stripe login
+
+# 2. Forward events to the local route. This prints the whsec_… to put in
+#    .env.local as STRIPE_WEBHOOK_SECRET — then restart `npm run dev`.
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+
+# 3. In another terminal, drive a real test checkout from /pricing using the
+#    test card 4242 4242 4242 4242, any future expiry, any CVC.
+
+# 4. Or fire events by hand:
+stripe trigger checkout.session.completed
+stripe trigger customer.subscription.deleted
+```
+
+`stripe trigger` sends synthetic events without your `supabase_user_id`
+metadata, so they will be acknowledged but will not flip anyone's plan. To test
+the real path, go through Checkout from `/pricing`.
+
+### Where the service role key is used
+
+Exactly one module reads it — `lib/supabase/admin.ts` — and exactly one route
+imports that module: `app/api/stripe/webhook/route.ts`. The webhook runs as
+Stripe, not as a signed-in user, so it cannot satisfy any RLS policy on
+`profiles` and needs the key that bypasses RLS. It must never be imported
+anywhere else.
+
+---
+
+## Seeding test users locally
+
+`supabase/seed.sql` runs automatically on `supabase db reset` and creates two
+confirmed accounts:
+
+| Email | Password | Plan |
+| --- | --- | --- |
+| `mara@example.com` | `password123` | free |
+| `luca@example.com` | `password123` | premium |
+
+```bash
+npx supabase db reset   # re-applies all migrations, then the seed
+```
+
+Local development only — never run the seed against a hosted project.
+
+---
+
+## Deployment checklist
+
+### Supabase (hosted project)
+
+- [ ] Create the project and copy the Project URL, anon key and service_role key.
+- [ ] `npx supabase link --project-ref <ref>` then `npx supabase db push` to apply
+      every migration.
+- [ ] In Studio, confirm **RLS is enabled** on all six tables and the policies are listed.
+- [ ] **Enable Realtime on the `messages` table in the hosted project too.**
+      The migration adds it to the `supabase_realtime` publication, but check
+      Database → Replication in the dashboard and confirm `messages` is on — this
+      is the single easiest thing to forget, and chat silently falls back to
+      "nothing ever arrives" without it.
+- [ ] Authentication → URL Configuration: set the Site URL to your production
+      domain and add it to the redirect allow-list, or confirmation links will
+      point at localhost.
+- [ ] Decide on email confirmation (Authentication → Providers → Email). The
+      signup form handles both settings.
+
+### Vercel
+
+- [ ] Import the repo; framework preset Next.js, no build overrides needed.
+- [ ] Environment variables (Production **and** Preview):
+      `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+      `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`,
+      `STRIPE_PREMIUM_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`.
+- [ ] Only the two `NEXT_PUBLIC_*` values are meant to be public. Double-check
+      nothing else was given that prefix.
+- [ ] Deploy, then confirm `/` renders and `/discover` redirects to `/signin`
+      when signed out.
+
+### Stripe (live mode)
+
+- [ ] Recreate the Premium product and price in **live** mode — test-mode price
+      ids do not work live. Update `STRIPE_PREMIUM_PRICE_ID`.
+- [ ] Swap `STRIPE_SECRET_KEY` for the live secret key.
+- [ ] Add a webhook endpoint at `https://<your-domain>/api/stripe/webhook`
+      subscribed to `checkout.session.completed` and
+      `customer.subscription.deleted`; copy **that endpoint's** signing secret
+      into `STRIPE_WEBHOOK_SECRET` (it differs from the local `stripe listen` one).
+- [ ] Enable the Customer Portal (Settings → Billing → Customer portal) or the
+      "Manage billing" button will error.
+- [ ] Redeploy after changing env vars — Vercel does not apply them to an
+      existing build.
+
+### Smoke test on the deployed site
+
+- [ ] Sign up → a `profiles` row appears with `plan='free'`.
+- [ ] List a skill; a second one is refused with the upgrade message.
+- [ ] Browse Discover; adding `?q=` by hand changes nothing on the free plan.
+- [ ] Send a swap request; the second attempt shows the countdown.
+- [ ] Accept, complete and rate from the other account.
+- [ ] Message in two browsers and confirm messages arrive without refreshing.
+- [ ] Upgrade with the live card, confirm the badge flips to Premium and filters
+      unlock without any manual database edit.
+- [ ] Cancel from the billing portal and confirm the plan returns to Free.

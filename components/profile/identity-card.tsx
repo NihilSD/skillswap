@@ -54,7 +54,7 @@ export function IdentityCard({ profile }: { profile: Profile }) {
   }
 
   return (
-    <form onSubmit={save} className="card p-6 lg:sticky lg:top-24">
+    <form onSubmit={save} className="card p-6">
       <div className="flex items-center gap-4">
         <button
           type="button"

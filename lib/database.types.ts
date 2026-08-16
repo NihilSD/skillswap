@@ -83,6 +83,21 @@ export type DiscoverListing = {
   match_score: number
 }
 
+/** A row returned by get_plan_usage(). A null max means unlimited. */
+export type PlanUsage = {
+  plan: 'free' | 'premium'
+  listings_used: number
+  listings_max: number
+  active_listings_used: number
+  active_listings_max: number
+  requests_today: number
+  requests_max: number
+  requests_reset_at: string | null
+  messages_today: number
+  messages_max: number | null
+  messages_reset_at: string | null
+}
+
 /** A row returned by get_leaderboard(). */
 export type LeaderboardRow = {
   rank: number
@@ -159,6 +174,7 @@ export type Database = {
       max_messages_per_day: { Args: { p_user_id: string }; Returns: number | null }
       message_reset_at: { Args: { p_user_id: string }; Returns: string | null }
       can_send_message: { Args: { p_user_id: string }; Returns: boolean }
+      get_plan_usage: { Args: { p_user_id: string }; Returns: PlanUsage[] }
       get_leaderboard: { Args: { p_limit?: number }; Returns: LeaderboardRow[] }
       get_user_rank: { Args: { p_user_id: string }; Returns: UserRank[] }
     }

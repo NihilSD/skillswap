@@ -30,7 +30,7 @@ export function Navbar({
       <div className="container-page flex h-16 items-center gap-4">
         <Logo href="/discover" />
 
-        <NavLinks items={NAV_ITEMS} className="ml-2 hidden lg:flex" />
+        <NavLinks items={NAV_ITEMS} className="ml-2 hidden xl:flex" />
 
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle className="hidden sm:grid" />
@@ -46,7 +46,7 @@ export function Navbar({
             <PlanBadge plan={plan} />
           </Link>
 
-          <SignOutButton className="btn-ghost hidden lg:inline-flex" />
+          <SignOutButton className="btn-ghost hidden xl:inline-flex" />
 
           <MobileNav items={NAV_ITEMS} name={name} avatarEmoji={avatarEmoji} plan={plan} />
         </div>
