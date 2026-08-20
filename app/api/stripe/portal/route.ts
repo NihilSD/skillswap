@@ -14,20 +14,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('stripe_customer_id')
-    .eq('id', user.id)
-    .single()
+  // Read only the caller's own customer id — the column itself is not
+  // selectable from a user session.
+  const { data: customerId } = await supabase.rpc('my_stripe_customer_id')
 
-  if (!profile?.stripe_customer_id) {
+  if (!customerId) {
     return NextResponse.json({ error: 'No billing account yet' }, { status: 400 })
   }
 
   try {
     const stripe = getStripe()
     const session = await stripe.billingPortal.sessions.create({
-      customer: profile.stripe_customer_id,
+      customer: customerId,
       return_url: `${new URL(request.url).origin}/profile`,
     })
 

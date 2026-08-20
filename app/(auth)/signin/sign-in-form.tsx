@@ -5,6 +5,19 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { FormError, SubmitButton } from '@/components/auth-form-parts'
 
+/**
+ * Only same-origin paths are honoured. `//evil.com` and `/\evil.com` both
+ * start with '/' but are protocol-relative URLs the browser resolves to
+ * another origin — a classic open-redirect used to make phishing links look
+ * like they come from us.
+ */
+function safeNext(next: string | null): string {
+  if (!next) return '/discover'
+  if (!next.startsWith('/')) return '/discover'
+  if (next.startsWith('//') || next.startsWith('/\\')) return '/discover'
+  return next
+}
+
 export function SignInForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -31,7 +44,7 @@ export function SignInForm() {
       return
     }
 
-    router.replace(next && next.startsWith('/') ? next : '/discover')
+    router.replace(safeNext(next))
     router.refresh()
   }
 

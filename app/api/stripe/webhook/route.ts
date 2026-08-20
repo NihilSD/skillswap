@@ -30,8 +30,10 @@ export async function POST(request: Request) {
   try {
     event = stripe.webhooks.constructEvent(body, signature, secret)
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Invalid signature'
-    return NextResponse.json({ error: `Webhook signature failed: ${message}` }, { status: 400 })
+    // Log the detail server-side; return nothing that helps someone probe the
+    // endpoint (Stripe's own message is long and framework-revealing).
+    console.error('Stripe webhook signature verification failed:', error)
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
   const supabase = createAdminClient()
@@ -86,8 +88,8 @@ export async function POST(request: Request) {
         break
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Webhook handler failed'
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error('Stripe webhook handler failed:', error)
+    return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 })
   }
 
   return NextResponse.json({ received: true })

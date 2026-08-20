@@ -58,3 +58,50 @@ implementation of the counting logic to fall out of sync.
 
 The UI maps these to plain-language copy with an upgrade link; anything else is
 a genuine bug and is surfaced as-is.
+
+---
+
+# Penetration test — results
+
+A second, adversarial pass: every test run as the `authenticated` role with a
+victim's id in `request.jwt.claim.sub`, i.e. exactly the privileges someone
+holds with their own session token and `curl`.
+
+## Findings and fixes
+
+| # | Severity | Finding | Status |
+| --- | --- | --- | --- |
+| 1 | High | **Message forgery.** The `messages` UPDATE policy is row-level (`auth.uid() = receiver_id`), so a recipient could rewrite the `content` of a message sent to them. The row stayed attributed to the original sender — someone could fabricate what another member said ("I will pay you 50" → "…5000") and it would look authentic in the thread. | Fixed — `SS008` trigger makes a sent message immutable except for `read_at` |
+| 2 | Medium | **Billing identifier disclosure.** The public-directory SELECT policy is `using (true)` over all columns, so any signed-in user could read every member's `stripe_customer_id` and `stripe_subscription_id`. | Fixed — table-level SELECT revoked and re-granted per column; the Stripe routes read the caller's own value through `my_stripe_customer_id()` |
+| 3 | Medium | **No length limits on user text.** A 200 KB bio, a 5,000-character display name and a 1,000-character "emoji" were all accepted through the API. Storage abuse, and oversized values break every layout that renders them. | Fixed — CHECK constraints on profiles, listings, wanted skills, messages, requests and rating comments |
+| 4 | Medium | **Open redirect.** `/signin?next=//evil.com` passed the `startsWith('/')` check, and a protocol-relative URL resolves to another origin — a phishing link that genuinely starts on our domain. | Fixed — `safeNext()` rejects `//` and `/\` prefixes |
+| 5 | Low | **Swap request messages were editable after sending.** The sender could rewrite the message the recipient had already acted on. | Fixed — `SS006` on any post-send message change |
+| 6 | Low | **Missing security headers.** No framing, MIME-sniffing, referrer or HSTS protection; `X-Powered-By` advertised the framework. | Fixed in `next.config.mjs` |
+| 7 | Low | **Verbose webhook errors.** Signature failures returned Stripe's full diagnostic text to an unauthenticated caller. | Fixed — logged server-side, generic response |
+
+## Tested and found sound
+
+- **Privilege escalation** — self-upgrade to premium blocked twice over (trigger + no UPDATE privilege on the column)
+- **Rating integrity** — cannot rate yourself, rate on someone else's behalf, rate a swap you were not part of, rate an incomplete swap, or delete/alter a rating written about you
+- **IDOR** — cannot read other people's swap requests or messages, cannot re-address a message, cannot send as another user, cannot transfer a listing
+- **Status tampering** — cannot accept your own request, cannot reverse a status, cannot complete a swap you are not part of
+- **SQL injection** — `discover_listings` passes its arguments as parameters, never string-built SQL; `' or 1=1 --` returns normal results
+- **Premium filter bypass** — filter arguments are dropped inside the function for free accounts
+- **Secrets** — no `.env` files tracked in git; the service-role and Stripe secret keys appear in no client bundle
+- **XSS** — the only `dangerouslySetInnerHTML` is a static theme script with no user input; all user text renders as React children
+- **Auth boundaries** — all six protected routes redirect when signed out; both Stripe routes 401; the webhook rejects missing and forged signatures
+
+## Known, accepted, or deferred
+
+- **Anyone can message anyone.** There is no requirement of an accepted swap
+  before messaging, so unsolicited messages are possible (bounded to 10/day on
+  free). This matches the spec; add a "must have an accepted swap" rule if spam
+  becomes a problem.
+- **No rate limiting on `/api/stripe/checkout`.** An authenticated user can
+  create Checkout sessions in a loop. Worth an IP/user limiter before launch.
+- **Content-Security-Policy is frame-ancestors only.** A full CSP needs a
+  per-request nonce for Next's inline hydration scripts; that is a behavioural
+  change that should be tested against a live Supabase first.
+- **Next.js 14.2.35 carries open advisories** (SSRF in Server Actions on custom
+  servers, cache confusion, Server Function endpoint disclosure) that are only
+  fixed in Next 16. The plan pinned Next 14; upgrading is a deliberate call.

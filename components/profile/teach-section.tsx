@@ -7,13 +7,13 @@ import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/auth-form-parts'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import { limitsFor, planErrorMessage, isPlanLimitError } from '@/lib/plan'
-import type { Profile, SkillListing } from '@/lib/database.types'
+import type { PublicProfile, SkillListing } from '@/lib/database.types'
 
 export function TeachSection({
   profile,
   initialListings,
 }: {
-  profile: Profile
+  profile: PublicProfile
   initialListings: SkillListing[]
 }) {
   const router = useRouter()

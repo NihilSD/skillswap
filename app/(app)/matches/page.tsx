@@ -5,7 +5,12 @@ import { EmptyState } from '@/components/empty-state'
 import { RequestCard, type RequestView } from '@/components/matches/request-card'
 import { requireProfile } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
-import type { Profile, SkillListing, SwapRequest } from '@/lib/database.types'
+import {
+  PUBLIC_PROFILE_COLUMNS,
+  type PublicProfile,
+  type SkillListing,
+  type SwapRequest,
+} from '@/lib/database.types'
 
 export const metadata: Metadata = { title: 'Matches · SkillSwap' }
 
@@ -29,15 +34,15 @@ export default async function MatchesPage() {
 
   const [{ data: peopleRows }, { data: listingRows }, { data: ratingRows }] = await Promise.all([
     otherIds.length
-      ? supabase.from('profiles').select('*').in('id', otherIds)
-      : Promise.resolve({ data: [] as Profile[] }),
+      ? supabase.from('profiles').select(PUBLIC_PROFILE_COLUMNS).in('id', otherIds)
+      : Promise.resolve({ data: [] as PublicProfile[] }),
     listingIds.length
       ? supabase.from('skill_listings').select('*').in('id', listingIds)
       : Promise.resolve({ data: [] as SkillListing[] }),
     supabase.from('ratings').select('swap_request_id').eq('rater_user_id', profile.id),
   ])
 
-  const people = new Map((peopleRows ?? []).map((p) => [p.id, p as Profile]))
+  const people = new Map((peopleRows ?? []).map((p) => [p.id, p as PublicProfile]))
   const listings = new Map((listingRows ?? []).map((l) => [l.id, l as SkillListing]))
   const ratedSwapIds = new Set((ratingRows ?? []).map((r) => r.swap_request_id))
 

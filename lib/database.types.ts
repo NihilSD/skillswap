@@ -19,6 +19,15 @@ export type Profile = {
   created_at: string
 }
 
+/**
+ * The columns the anon/authenticated roles are allowed to read. The Stripe
+ * identifiers are deliberately excluded — selecting them from a user session
+ * is denied at the database level, so always query this list rather than '*'.
+ */
+export const PUBLIC_PROFILE_COLUMNS = 'id, name, avatar_emoji, bio, plan, created_at' as const
+
+export type PublicProfile = Omit<Profile, 'stripe_customer_id' | 'stripe_subscription_id'>
+
 export type SkillListing = {
   id: string
   user_id: string
@@ -174,6 +183,7 @@ export type Database = {
       max_messages_per_day: { Args: { p_user_id: string }; Returns: number | null }
       message_reset_at: { Args: { p_user_id: string }; Returns: string | null }
       can_send_message: { Args: { p_user_id: string }; Returns: boolean }
+      my_stripe_customer_id: { Args: Record<string, never>; Returns: string | null }
       get_plan_usage: { Args: { p_user_id: string }; Returns: PlanUsage[] }
       get_leaderboard: { Args: { p_limit?: number }; Returns: LeaderboardRow[] }
       get_user_rank: { Args: { p_user_id: string }; Returns: UserRank[] }

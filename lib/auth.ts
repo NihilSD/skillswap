@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { Profile } from '@/lib/database.types'
+import { PUBLIC_PROFILE_COLUMNS, type PublicProfile } from '@/lib/database.types'
 
 /**
  * Returns the signed-in user and their profile, or redirects to /signin.
@@ -8,7 +8,7 @@ import type { Profile } from '@/lib/database.types'
  * Middleware already guards the protected route prefixes; this exists so page
  * code can rely on a non-null profile without repeating the null checks.
  */
-export async function requireProfile(): Promise<{ userId: string; email: string; profile: Profile }> {
+export async function requireProfile(): Promise<{ userId: string; email: string; profile: PublicProfile }> {
   const supabase = createClient()
 
   const {
@@ -19,7 +19,7 @@ export async function requireProfile(): Promise<{ userId: string; email: string;
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*')
+    .select(PUBLIC_PROFILE_COLUMNS)
     .eq('id', user.id)
     .single()
 

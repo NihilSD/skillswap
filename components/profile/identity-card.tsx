@@ -4,14 +4,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { FormError, Spinner } from '@/components/auth-form-parts'
-import type { Profile } from '@/lib/database.types'
+import type { PublicProfile } from '@/lib/database.types'
 
 const EMOJI_CHOICES = [
   '🙂','😎','🤓','🧑‍🎓','🧑‍🍳','🧑‍💻','🧑‍🎨','🧑‍🔧','🧑‍🚀','🎸','🎹','🎤',
   '📚','🧶','🪴','🍜','🏋️','🚴','🎯','🐙','🦊','🐝','🌵','⭐',
 ]
 
-export function IdentityCard({ profile }: { profile: Profile }) {
+export function IdentityCard({ profile }: { profile: PublicProfile }) {
   const router = useRouter()
   const [emoji, setEmoji] = useState(profile.avatar_emoji)
   const [name, setName] = useState(profile.name)

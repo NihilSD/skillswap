@@ -28,9 +28,14 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('plan, stripe_customer_id')
+    .select('plan')
     .eq('id', user.id)
     .single()
+
+  // stripe_customer_id is not readable from a user session (the anon and
+  // authenticated roles have no column privilege on it); this SECURITY
+  // DEFINER function returns only the caller's own value.
+  const { data: existingCustomerId } = await supabase.rpc('my_stripe_customer_id')
 
   if (profile?.plan === 'premium') {
     return NextResponse.json({ error: 'You are already on Premium' }, { status: 400 })
@@ -44,8 +49,8 @@ export async function POST(request: Request) {
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
       // Reuse the customer if we have already created one for this user.
-      ...(profile?.stripe_customer_id
-        ? { customer: profile.stripe_customer_id }
+      ...(existingCustomerId
+        ? { customer: existingCustomerId }
         : { customer_email: user.email }),
       client_reference_id: user.id,
       metadata: { supabase_user_id: user.id },

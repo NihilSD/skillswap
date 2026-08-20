@@ -5,7 +5,11 @@ import { EmptyState } from '@/components/empty-state'
 import { MessagesClient, type Conversation } from '@/components/messages/messages-client'
 import { requireProfile } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
-import type { Message, Profile } from '@/lib/database.types'
+import {
+  PUBLIC_PROFILE_COLUMNS,
+  type Message,
+  type PublicProfile,
+} from '@/lib/database.types'
 
 export const metadata: Metadata = { title: 'Messages · SkillSwap' }
 
@@ -39,10 +43,10 @@ export default async function MessagesPage({
   }
 
   const { data: peopleRows } = partnerIds.length
-    ? await supabase.from('profiles').select('*').in('id', partnerIds)
-    : { data: [] as Profile[] }
+    ? await supabase.from('profiles').select(PUBLIC_PROFILE_COLUMNS).in('id', partnerIds)
+    : { data: [] as PublicProfile[] }
 
-  const people = new Map((peopleRows ?? []).map((p) => [p.id, p as Profile]))
+  const people = new Map((peopleRows ?? []).map((p) => [p.id, p as PublicProfile]))
 
   const conversations: Conversation[] = partnerIds
     .filter((id) => people.has(id))
