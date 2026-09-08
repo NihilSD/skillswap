@@ -49,6 +49,9 @@ fun SsPrimaryButton(
     enabled: Boolean = true,
     loading: Boolean = false,
 ) {
+    // No fillMaxWidth on the inner button: that made this greedy inside a Row
+    // and pushed sibling buttons off-screen. The Box takes whatever width the
+    // caller's modifier gives it and centres the label.
     Box(
         modifier
             .clip(CircleShape)
@@ -63,12 +66,12 @@ fun SsPrimaryButton(
                         )
                     )
                 }
-            )
+            ),
+        contentAlignment = Alignment.Center,
     ) {
         TextButton(
             onClick = onClick,
             enabled = enabled && !loading,
-            modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.textButtonColors(
                 contentColor = Color.White,
                 disabledContentColor = SkillSwapTheme.colors.muted,

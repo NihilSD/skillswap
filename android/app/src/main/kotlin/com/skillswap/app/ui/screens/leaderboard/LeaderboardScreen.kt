@@ -32,6 +32,18 @@ fun LeaderboardScreen(profile: Profile) {
         loading = false
     }
 
+    LeaderboardContent(profile, rows, ownRank, loading, error)
+}
+
+/** Data-free variant used by the screenshot tests. */
+@Composable
+internal fun LeaderboardContent(
+    profile: Profile,
+    rows: List<LeaderboardRow>,
+    ownRank: LeaderboardRow?,
+    loading: Boolean,
+    error: String?,
+) {
     val inTable = rows.any { it.userId == profile.id }
 
     LazyColumn(

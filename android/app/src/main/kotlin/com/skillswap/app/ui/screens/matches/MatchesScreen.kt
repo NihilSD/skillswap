@@ -16,7 +16,7 @@ import com.skillswap.app.ui.components.*
 import com.skillswap.app.ui.theme.SkillSwapTheme
 import kotlinx.coroutines.launch
 
-private data class RequestView(
+internal data class RequestView(
     val request: SwapRequest,
     val incoming: Boolean,
     val otherId: String,
@@ -73,6 +73,39 @@ fun MatchesScreen(
 
     LaunchedEffect(profile.id) { load() }
 
+    MatchesContent(
+        profile = profile,
+        views = views,
+        loading = loading,
+        error = error,
+        onOpenDiscover = onOpenDiscover,
+        onMessage = onMessage,
+        onRate = { ratingFor = it },
+        onChanged = { scope.launch { load() } },
+    )
+
+    ratingFor?.let { view ->
+        RatingSheet(
+            view = view,
+            profile = profile,
+            onDismiss = { ratingFor = null },
+            onRated = { ratingFor = null; scope.launch { load() } },
+        )
+    }
+}
+
+/** Data-free variant used by the screenshot tests. */
+@Composable
+internal fun MatchesContent(
+    profile: Profile,
+    views: List<RequestView>,
+    loading: Boolean,
+    error: String?,
+    onOpenDiscover: () -> Unit,
+    onMessage: (String) -> Unit,
+    onRate: (RequestView) -> Unit,
+    onChanged: () -> Unit,
+) {
     val incoming = views.filter { it.incoming }
     val outgoing = views.filterNot { it.incoming }
 
@@ -114,9 +147,7 @@ fun MatchesScreen(
                 }
             } else {
                 items(incoming, key = { it.request.id!! }) { view ->
-                    RequestCard(view, profile, onMessage, { ratingFor = view }) {
-                        scope.launch { load() }
-                    }
+                    RequestCard(view, profile, onMessage, { onRate(view) }, onChanged)
                 }
             }
 
@@ -135,23 +166,12 @@ fun MatchesScreen(
                 }
             } else {
                 items(outgoing, key = { it.request.id!! }) { view ->
-                    RequestCard(view, profile, onMessage, { ratingFor = view }) {
-                        scope.launch { load() }
-                    }
+                    RequestCard(view, profile, onMessage, { onRate(view) }, onChanged)
                 }
             }
         }
 
         item { Spacer(Modifier.height(24.dp)) }
-    }
-
-    ratingFor?.let { view ->
-        RatingSheet(
-            view = view,
-            profile = profile,
-            onDismiss = { ratingFor = null },
-            onRated = { ratingFor = null; scope.launch { load() } },
-        )
     }
 }
 

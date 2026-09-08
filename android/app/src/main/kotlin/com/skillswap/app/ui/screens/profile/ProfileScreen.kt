@@ -63,6 +63,81 @@ fun ProfileScreen(
         error = friendly ?: t.message ?: "Something went wrong."
     }
 
+    ProfileContent(
+        profile = profile,
+        email = email,
+        listings = listings,
+        wanted = wanted,
+        usage = usage,
+        error = error,
+        limitHit = limitHit,
+        onOpenPricing = onOpenPricing,
+        onSignOut = onSignOut,
+        onSave = { name, emoji, bio ->
+            scope.launch {
+                runCatching { ProfileRepository.update(profile.id, name, emoji, bio) }
+                    .onSuccess { onProfileChanged() }
+                    .onFailure { report(it) }
+            }
+        },
+        onAddListing = { title, category, description ->
+            scope.launch {
+                error = null; limitHit = false
+                runCatching {
+                    SkillRepository.addListing(
+                        SkillListing(userId = profile.id, title = title, category = category, description = description)
+                    )
+                    reload()
+                }.onFailure { report(it) }
+            }
+        },
+        onToggleListing = { listing ->
+            scope.launch {
+                error = null; limitHit = false
+                runCatching { SkillRepository.setActive(listing.id!!, !listing.active); reload() }
+                    .onFailure { report(it) }
+            }
+        },
+        onDeleteListing = { listing ->
+            scope.launch {
+                runCatching { SkillRepository.deleteListing(listing.id!!); reload() }.onFailure { report(it) }
+            }
+        },
+        onAddWanted = { title, category ->
+            scope.launch {
+                runCatching {
+                    SkillRepository.addWanted(WantedSkill(userId = profile.id, title = title, category = category))
+                    reload()
+                }.onFailure { report(it) }
+            }
+        },
+        onDeleteWanted = { skill ->
+            scope.launch {
+                runCatching { SkillRepository.deleteWanted(skill.id!!); reload() }.onFailure { report(it) }
+            }
+        },
+    )
+}
+
+/** Data-free variant used by the screenshot tests. */
+@Composable
+internal fun ProfileContent(
+    profile: Profile,
+    email: String,
+    listings: List<SkillListing>,
+    wanted: List<WantedSkill>,
+    usage: PlanUsage?,
+    error: String?,
+    limitHit: Boolean,
+    onOpenPricing: () -> Unit,
+    onSignOut: () -> Unit,
+    onSave: (String, String, String?) -> Unit,
+    onAddListing: (String, String, String) -> Unit,
+    onToggleListing: (SkillListing) -> Unit,
+    onDeleteListing: (SkillListing) -> Unit,
+    onAddWanted: (String, String) -> Unit,
+    onDeleteWanted: (WantedSkill) -> Unit,
+) {
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -95,76 +170,20 @@ fun ProfileScreen(
 
         usage?.let { item { UsageCard(it, onOpenPricing) } }
 
-        item {
-            IdentityCard(profile) { name, emoji, bio ->
-                scope.launch {
-                    runCatching { ProfileRepository.update(profile.id, name, emoji, bio) }
-                        .onSuccess { onProfileChanged() }
-                        .onFailure { report(it) }
-                }
-            }
-        }
+        item { IdentityCard(profile, onSave) }
 
         item {
             TeachCard(
                 profile = profile,
                 listings = listings,
-                onAdd = { title, category, description ->
-                    scope.launch {
-                        error = null; limitHit = false
-                        runCatching {
-                            SkillRepository.addListing(
-                                SkillListing(
-                                    userId = profile.id,
-                                    title = title,
-                                    category = category,
-                                    description = description,
-                                )
-                            )
-                            reload()
-                        }.onFailure { report(it) }
-                    }
-                },
-                onToggle = { listing ->
-                    scope.launch {
-                        error = null; limitHit = false
-                        runCatching {
-                            SkillRepository.setActive(listing.id!!, !listing.active)
-                            reload()
-                        }.onFailure { report(it) }
-                    }
-                },
-                onDelete = { listing ->
-                    scope.launch {
-                        runCatching {
-                            SkillRepository.deleteListing(listing.id!!)
-                            reload()
-                        }.onFailure { report(it) }
-                    }
-                },
+                onAdd = onAddListing,
+                onToggle = onToggleListing,
+                onDelete = onDeleteListing,
             )
         }
 
         item {
-            LearnCard(
-                wanted = wanted,
-                onAdd = { title, category ->
-                    scope.launch {
-                        runCatching {
-                            SkillRepository.addWanted(WantedSkill(userId = profile.id, title = title, category = category))
-                            reload()
-                        }.onFailure { report(it) }
-                    }
-                },
-                onDelete = { skill ->
-                    scope.launch {
-                        runCatching {
-                            SkillRepository.deleteWanted(skill.id!!)
-                            reload()
-                        }.onFailure { report(it) }
-                    }
-                },
-            )
+            LearnCard(wanted = wanted, onAdd = onAddWanted, onDelete = onDeleteWanted)
         }
 
         item {

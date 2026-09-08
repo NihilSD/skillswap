@@ -52,6 +52,58 @@ fun DiscoverScreen(
 
     LaunchedEffect(Unit) { load() }
 
+    DiscoverContent(
+        profile = profile,
+        listings = listings,
+        loading = loading,
+        error = error,
+        search = search,
+        onSearchChange = { search = it },
+        category = category,
+        onCategoryChange = { category = it },
+        bestMatch = bestMatch,
+        onBestMatchChange = { bestMatch = it },
+        onApply = { scope.launch { load() } },
+        onClear = {
+            search = ""; category = null; bestMatch = false
+            scope.launch { load() }
+        },
+        onOpenPricing = onOpenPricing,
+        onRequest = { requestTarget = it },
+    )
+
+    requestTarget?.let { target ->
+        RequestSheet(
+            listing = target,
+            profile = profile,
+            onDismiss = { requestTarget = null },
+            onSent = { requestTarget = null; onOpenMatches() },
+            onOpenPricing = { requestTarget = null; onOpenPricing() },
+        )
+    }
+}
+
+/**
+ * The screen with no data fetching of its own — everything arrives as
+ * parameters. This is what the screenshot tests render.
+ */
+@Composable
+internal fun DiscoverContent(
+    profile: Profile,
+    listings: List<DiscoverListing>,
+    loading: Boolean,
+    error: String?,
+    search: String,
+    onSearchChange: (String) -> Unit,
+    category: String?,
+    onCategoryChange: (String) -> Unit,
+    bestMatch: Boolean,
+    onBestMatchChange: (Boolean) -> Unit,
+    onApply: () -> Unit,
+    onClear: () -> Unit,
+    onOpenPricing: () -> Unit,
+    onRequest: (DiscoverListing) -> Unit,
+) {
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -68,22 +120,19 @@ fun DiscoverScreen(
         item {
             if (profile.isPremium) {
                 SsCard {
-                    SsTextField(search, { search = it }, "Search", placeholder = "Skills, categories or people")
+                    SsTextField(search, onSearchChange, "Search", placeholder = "Skills, categories or people")
                     Spacer(Modifier.height(10.dp))
-                    CategoryPicker(category ?: "Other") { category = it }
+                    CategoryPicker(category ?: "Other", onCategoryChange)
                     Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(checked = bestMatch, onCheckedChange = { bestMatch = it })
+                        Switch(checked = bestMatch, onCheckedChange = onBestMatchChange)
                         Spacer(Modifier.width(10.dp))
                         Text("Sort by best match", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                     }
                     Spacer(Modifier.height(12.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SsPrimaryButton("Search", { scope.launch { load() } })
-                        SsSecondaryButton("Clear", {
-                            search = ""; category = null; bestMatch = false
-                            scope.launch { load() }
-                        })
+                        SsPrimaryButton("Search", onApply)
+                        SsSecondaryButton("Clear", onClear)
                     }
                 }
             } else {
@@ -136,22 +185,12 @@ fun DiscoverScreen(
                 ListingCard(
                     listing = listing,
                     showMatch = profile.isPremium && bestMatch,
-                    onRequest = { requestTarget = listing },
+                    onRequest = { onRequest(listing) },
                 )
             }
         }
 
         item { Spacer(Modifier.height(24.dp)) }
-    }
-
-    requestTarget?.let { target ->
-        RequestSheet(
-            listing = target,
-            profile = profile,
-            onDismiss = { requestTarget = null },
-            onSent = { requestTarget = null; onOpenMatches() },
-            onOpenPricing = { requestTarget = null; onOpenPricing() },
-        )
     }
 }
 

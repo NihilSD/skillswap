@@ -33,7 +33,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
-private data class Conversation(
+internal data class Conversation(
     val partnerId: String,
     val name: String,
     val emoji: String,
@@ -137,7 +137,72 @@ fun MessagesScreen(
     }
 
     if (active == null) {
-        // Conversation list
+        ConversationListContent(
+            conversations = conversations,
+            usage = usage,
+            error = error,
+            onOpen = { activeId = it },
+        )
+        return
+    }
+
+    ThreadContent(
+        profile = profile,
+        active = active,
+        thread = thread,
+        draft = draft,
+        onDraftChange = { draft = it },
+        sending = sending,
+        limited = limited,
+        countdown = countdown,
+        usage = usage,
+        error = error,
+        onBack = { activeId = null },
+        onOpenPricing = onOpenPricing,
+        onSend = {
+            val body = draft.trim()
+            if (body.isNotEmpty()) {
+                sending = true; error = null
+                scope.launch {
+                    runCatching {
+                        MessageRepository.send(
+                            Message(senderId = profile.id, receiverId = active.partnerId, content = body)
+                        )
+                    }.onSuccess { sent ->
+                        messages = messages + sent
+                        // The draft is only cleared once the send worked.
+                        draft = ""
+                        usage?.let { u ->
+                            if (u.messagesMax != null && u.messagesToday + 1 >= u.messagesMax) limited = true
+                        }
+                    }.onFailure { throwable ->
+                        if (throwable.message?.contains(PlanError.MESSAGE_DAILY) == true ||
+                            throwable.message?.contains("messages per day") == true
+                        ) {
+                            limited = true
+                            countdown = formatCountdown(
+                                runCatching { MessageRepository.resetAt(profile.id) }.getOrNull()
+                            )
+                            error = "Daily message limit reached — upgrade for unlimited messaging."
+                        } else {
+                            error = throwable.message
+                        }
+                    }
+                    sending = false
+                }
+            }
+        },
+    )
+}
+
+/** Data-free conversation list, used by the screenshot tests. */
+@Composable
+internal fun ConversationListContent(
+    conversations: List<Conversation>,
+    usage: PlanUsage?,
+    error: String?,
+    onOpen: (String) -> Unit,
+) {
         LazyColumn(
             Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
@@ -156,7 +221,7 @@ fun MessagesScreen(
             error?.let { item { SsBanner(it) } }
             items(conversations, key = { it.partnerId }) { conversation ->
                 SsCard(
-                    Modifier.clickable { activeId = conversation.partnerId },
+                    Modifier.clickable { onOpen(conversation.partnerId) },
                     contentPadding = PaddingValues(14.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -180,10 +245,25 @@ fun MessagesScreen(
             }
             item { Spacer(Modifier.height(24.dp)) }
         }
-        return
-    }
+}
 
-    // Thread
+/** Data-free thread view, used by the screenshot tests. */
+@Composable
+internal fun ThreadContent(
+    profile: Profile,
+    active: Conversation,
+    thread: List<Message>,
+    draft: String,
+    onDraftChange: (String) -> Unit,
+    sending: Boolean,
+    limited: Boolean,
+    countdown: String?,
+    usage: PlanUsage?,
+    error: String?,
+    onBack: () -> Unit,
+    onOpenPricing: () -> Unit,
+    onSend: () -> Unit,
+) {
     val listState = rememberLazyListState()
     LaunchedEffect(thread.size) {
         if (thread.isNotEmpty()) listState.animateScrollToItem(thread.lastIndex)
@@ -197,7 +277,7 @@ fun MessagesScreen(
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = { activeId = null }) {
+            IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back to conversations")
             }
             Avatar(active.emoji, 36)
@@ -266,7 +346,7 @@ fun MessagesScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = draft,
-                    onValueChange = { if (it.length <= 2000) draft = it },
+                    onValueChange = { if (it.length <= 2000) onDraftChange(it) },
                     modifier = Modifier.weight(1f),
                     placeholder = {
                         Text(
@@ -283,42 +363,7 @@ fun MessagesScreen(
                 )
                 Spacer(Modifier.width(8.dp))
                 FilledIconButton(
-                    onClick = {
-                        val body = draft.trim()
-                        if (body.isEmpty()) return@FilledIconButton
-                        sending = true; error = null
-                        scope.launch {
-                            runCatching {
-                                MessageRepository.send(
-                                    Message(
-                                        senderId = profile.id,
-                                        receiverId = active.partnerId,
-                                        content = body,
-                                    )
-                                )
-                            }.onSuccess { sent ->
-                                messages = messages + sent
-                                // The draft is only cleared once the send worked.
-                                draft = ""
-                                usage?.let { u ->
-                                    if (u.messagesMax != null && u.messagesToday + 1 >= u.messagesMax) limited = true
-                                }
-                            }.onFailure { throwable ->
-                                if (throwable.message?.contains(PlanError.MESSAGE_DAILY) == true ||
-                                    throwable.message?.contains("messages per day") == true
-                                ) {
-                                    limited = true
-                                    countdown = formatCountdown(
-                                        runCatching { MessageRepository.resetAt(profile.id) }.getOrNull()
-                                    )
-                                    error = "Daily message limit reached — upgrade for unlimited messaging."
-                                } else {
-                                    error = throwable.message
-                                }
-                            }
-                            sending = false
-                        }
-                    },
+                    onClick = onSend,
                     enabled = !sending && !limited && draft.isNotBlank(),
                 ) {
                     Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = "Send")

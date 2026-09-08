@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.roborazzi)
 }
 
 /**
@@ -67,6 +68,16 @@ android {
     }
 
     sourceSets["main"].java.srcDirs("src/main/kotlin")
+    sourceSets["test"].java.srcDirs("src/test/kotlin")
+
+    // Screenshot tests render real Compose UI on the JVM via Robolectric,
+    // which needs the merged Android resources.
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            all { it.systemProperty("robolectric.graphicsMode", "NATIVE") }
+        }
+    }
 }
 
 dependencies {
@@ -97,4 +108,14 @@ dependencies {
     implementation(libs.ktor.client.okhttp)
 
     implementation(libs.coil.compose)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.rule)
+    debugImplementation(libs.androidx.ui.test.manifest)
 }
