@@ -3,11 +3,36 @@
 A marketplace for trading skills: list what you can teach, find someone teaching
 what you want to learn, swap, chat in realtime, and rate each other.
 
-**Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase
-(Postgres + Auth + Realtime) · Stripe (Premium billing)
+Two clients, one backend:
+
+| | |
+| --- | --- |
+| **Web** | Next.js 14 (App Router) · TypeScript · Tailwind CSS |
+| **Android** | Kotlin · Jetpack Compose · Material 3 — see [`android/`](android/) |
+| **Backend** | Supabase — Postgres, Auth, Realtime, Row Level Security |
+| **Billing** | Stripe Checkout + webhook |
+
+The Android app needed **no backend changes at all**. Every rule — the plan
+caps, the Premium-only filters, the daily limits, who can read what — lives in
+Postgres, so a second client inherits all of it by using the same anon key.
 
 Plan limits live in [`docs/plan-limits.md`](docs/plan-limits.md) and are enforced
-in Postgres, not just in the UI.
+in Postgres, not just in the UI. Where each one is enforced — and the findings
+from a penetration test against them — is in
+[`docs/enforcement-audit.md`](docs/enforcement-audit.md).
+
+## Security posture
+
+- Every plan limit is a Postgres trigger function or an RLS policy. A disabled
+  button is a courtesy; the database is the control.
+- RLS on all six tables, verified by a test suite run as the `authenticated`
+  role — the same privileges a hand-crafted API call has.
+- The service-role key is read in exactly one file and imported by exactly one
+  route (the Stripe webhook), and appears in no client bundle or APK.
+- Strict `Content-Security-Policy` with a per-request nonce, plus HSTS,
+  `X-Frame-Options`, `nosniff`, `Referrer-Policy` and `Permissions-Policy`.
+- CI blocks a merge if RLS is ever switched off or if the plan-escalation
+  defence regresses.
 
 ---
 
@@ -93,6 +118,20 @@ supabase/            Supabase CLI config and migrations
 docs/plan-limits.md  Free vs Premium limits — the single source of truth
 docs/enforcement-audit.md  Where each plan limit is actually enforced
 ```
+
+## Continuous integration
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs three jobs on every
+push:
+
+| Job | What it proves |
+| --- | --- |
+| **web** | Typecheck, lint and a production build succeed |
+| **database** | Every migration applies in order to a clean Postgres, RLS is on for all six tables, and a user still cannot grant themselves Premium |
+| **android** | The app assembles, and every screen still renders identically to the committed screenshots |
+
+The database job is the important one: it turns "the limits are enforced in
+Postgres" from a claim into something a broken commit cannot get past.
 
 ## Build stages
 

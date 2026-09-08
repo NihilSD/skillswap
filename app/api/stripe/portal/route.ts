@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit, tooManyRequests } from '@/lib/rate-limit'
 
 /** Opens the Stripe Customer Portal so a premium member can manage billing. */
 export async function POST(request: Request) {
@@ -13,6 +14,10 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
   }
+
+  // Creating Stripe sessions is cheap for us and costly for Stripe; cap it.
+  const limit = rateLimit(`stripe:portal:${user.id}`, { limit: 5, windowSeconds: 60 })
+  if (!limit.allowed) return tooManyRequests(limit)
 
   // Read only the caller's own customer id — the column itself is not
   // selectable from a user session.

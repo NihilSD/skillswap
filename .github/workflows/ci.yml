@@ -1,0 +1,177 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# A newer push on the same branch cancels the previous run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web — typecheck, lint, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx next lint
+
+      - name: Build
+        run: npm run build
+        env:
+          # Build-time placeholders only. Real values live in the deployment
+          # environment; nothing here is a secret.
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+
+  database:
+    name: Database — migrations, RLS and plan limits
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+        ports: ['5432:5432']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply migrations against a real Postgres
+        env:
+          PGPASSWORD: postgres
+        run: |
+          # Supabase's auth schema is not present in a plain Postgres, so stand
+          # up the pieces the migrations depend on.
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 <<'SQL'
+          create extension if not exists pgcrypto;
+          create role anon nologin noinherit;
+          create role authenticated nologin noinherit;
+          create role service_role nologin noinherit bypassrls;
+          grant anon, authenticated, service_role to postgres;
+          create schema auth authorization postgres;
+          create table auth.users (
+            id uuid primary key default gen_random_uuid(),
+            email text unique,
+            raw_user_meta_data jsonb default '{}'::jsonb,
+            created_at timestamptz default now()
+          );
+          create or replace function auth.uid() returns uuid language sql stable as $$
+            select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
+          $$;
+          grant usage on schema auth to anon, authenticated, service_role;
+          grant select on auth.users to authenticated;
+          grant usage on schema public to anon, authenticated, service_role;
+          alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+          SQL
+
+          for migration in supabase/migrations/*.sql; do
+            echo "--- $migration"
+            psql -h localhost -U postgres -v ON_ERROR_STOP=1 -q -f "$migration"
+          done
+
+      - name: Assert RLS is enabled on every table
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -c "
+            do \$\$
+            declare unprotected text;
+            begin
+              select string_agg(relname, ', ') into unprotected
+              from pg_class
+              where relnamespace = 'public'::regnamespace
+                and relkind = 'r'
+                and not relrowsecurity;
+              if unprotected is not null then
+                raise exception 'Tables without RLS: %', unprotected;
+              end if;
+            end \$\$;"
+
+      - name: Assert a user cannot grant themselves Premium
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 <<'SQL'
+          insert into auth.users (id, email) values
+            ('11111111-1111-1111-1111-111111111111', 'ci@example.com');
+
+          do $$
+          declare current_plan text;
+          begin
+            set local role authenticated;
+            perform set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
+
+            -- Blocked by the column privilege and by the SS007 trigger; either
+            -- way the attempt must not change the stored plan.
+            begin
+              update public.profiles set plan = 'premium'
+               where id = '11111111-1111-1111-1111-111111111111';
+            exception when others then
+              raise notice 'escalation attempt rejected: %', sqlerrm;
+            end;
+
+            reset role;
+            select plan into current_plan from public.profiles
+             where id = '11111111-1111-1111-1111-111111111111';
+
+            if current_plan is distinct from 'free' then
+              raise exception 'SECURITY REGRESSION: plan is now %', current_plan;
+            end if;
+            raise notice 'plan escalation correctly blocked';
+          end $$;
+          SQL
+
+  android:
+    name: Android — build and screenshot verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Supply build-time placeholders
+        working-directory: android
+        run: |
+          {
+            echo "SUPABASE_URL=https://example.supabase.co"
+            echo "SUPABASE_ANON_KEY=ci-placeholder-anon-key"
+          } >> local.properties
+
+      - name: Assemble debug
+        working-directory: android
+        run: ./gradlew :app:assembleDebug
+
+      - name: Verify screenshots match the committed renders
+        working-directory: android
+        run: ./gradlew :app:testDebugUnitTest -Proborazzi.test.verify=true
+
+      - name: Upload screenshot diffs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-diffs
+          path: android/app/build/outputs/roborazzi/

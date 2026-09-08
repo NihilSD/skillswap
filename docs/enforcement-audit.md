@@ -91,17 +91,32 @@ holds with their own session token and `curl`.
 - **XSS** — the only `dangerouslySetInnerHTML` is a static theme script with no user input; all user text renders as React children
 - **Auth boundaries** — all six protected routes redirect when signed out; both Stripe routes 401; the webhook rejects missing and forged signatures
 
+## Follow-ups since closed
+
+- **Rate limiting** — `/api/stripe/checkout` and `/api/stripe/portal` now allow
+  5 requests per minute per user (`lib/rate-limit.ts`). It is an in-memory
+  fixed window, so on serverless it is per instance: a speed bump, not a
+  distributed quota. Nothing that matters depends on it, because the data rules
+  are in Postgres.
+- **Content-Security-Policy** — now a strict per-request policy built in
+  `middleware.ts` with a nonce, `strict-dynamic`, and `connect-src` naming the
+  Supabase HTTP and `wss://` origins so Realtime keeps working. Verified in a
+  real browser: the theme script runs, React hydrates, the theme toggle works,
+  and there are zero CSP violations or console errors.
+- **Regression protection** — CI now fails the build if RLS is disabled on any
+  table or if a user can change their own `plan`.
+
 ## Known, accepted, or deferred
 
 - **Anyone can message anyone.** There is no requirement of an accepted swap
   before messaging, so unsolicited messages are possible (bounded to 10/day on
   free). This matches the spec; add a "must have an accepted swap" rule if spam
   becomes a problem.
-- **No rate limiting on `/api/stripe/checkout`.** An authenticated user can
-  create Checkout sessions in a loop. Worth an IP/user limiter before launch.
-- **Content-Security-Policy is frame-ancestors only.** A full CSP needs a
-  per-request nonce for Next's inline hydration scripts; that is a behavioural
-  change that should be tested against a live Supabase first.
+- **`style-src` still allows `'unsafe-inline'`.** Tailwind and `next/font`
+  emit inline styles with no nonce path. Inline *script* execution — the part
+  that actually matters — is blocked.
+- **Rate limiting is per instance.** See above; move it to Redis if you need a
+  hard global limit.
 - **Next.js 14.2.35 carries open advisories** (SSRF in Server Actions on custom
   servers, cache confusion, Server Function endpoint disclosure) that are only
   fixed in Next 16. The plan pinned Next 14; upgrading is a deliberate call.

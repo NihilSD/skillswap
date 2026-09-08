@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit, tooManyRequests } from '@/lib/rate-limit'
 
 /**
  * Creates a Stripe Checkout subscription session for the signed-in user.
@@ -17,6 +18,10 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
   }
+
+  // Creating Stripe sessions is cheap for us and costly for Stripe; cap it.
+  const limit = rateLimit(`stripe:checkout:${user.id}`, { limit: 5, windowSeconds: 60 })
+  if (!limit.allowed) return tooManyRequests(limit)
 
   const priceId = process.env.STRIPE_PREMIUM_PRICE_ID
   if (!priceId) {

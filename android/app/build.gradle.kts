@@ -27,6 +27,33 @@ android {
     namespace = "com.skillswap.app"
     compileSdk = 35
 
+    /**
+     * Release signing is configured only when a keystore is actually supplied,
+     * so a plain `assembleRelease` still works for anyone building from a
+     * fresh clone — it just produces an unsigned APK.
+     *
+     * Supply these in local.properties (git-ignored) or as CI secrets:
+     *   RELEASE_STORE_FILE, RELEASE_STORE_PASSWORD,
+     *   RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD
+     *
+     * Create a keystore with:
+     *   keytool -genkeypair -v -keystore skillswap-release.jks \
+     *     -keyalg RSA -keysize 4096 -validity 10000 -alias skillswap
+     *
+     * Never commit the keystore or its passwords.
+     */
+    signingConfigs {
+        val storeFilePath = secret("RELEASE_STORE_FILE")
+        if (storeFilePath.isNotBlank() && file(storeFilePath).exists()) {
+            create("release") {
+                storeFile = file(storeFilePath)
+                storePassword = secret("RELEASE_STORE_PASSWORD")
+                keyAlias = secret("RELEASE_KEY_ALIAS")
+                keyPassword = secret("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "com.skillswap.app"
         minSdk = 26
@@ -46,6 +73,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 

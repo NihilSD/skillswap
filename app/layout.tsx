@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { headers } from 'next/headers'
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 
@@ -38,10 +39,14 @@ try {
 `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Set per-request by middleware; required for the inline script below to run
+  // under the Content-Security-Policy.
+  const nonce = headers().get('x-nonce') ?? undefined
+
   return (
     <html lang="en" className={`${inter.variable} ${jakarta.variable}`} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-dvh font-sans antialiased">{children}</body>
     </html>

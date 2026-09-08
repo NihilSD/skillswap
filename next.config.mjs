@@ -1,16 +1,12 @@
 /**
- * Security headers.
- *
- * A full Content-Security-Policy needs a per-request nonce (Next injects
- * inline hydration scripts), which means generating one in middleware and
- * threading it through the document — worth doing, but it is a behavioural
- * change that needs testing against a live Supabase, so it is tracked as a
- * follow-up rather than switched on blind. Everything below is safe today.
+ * Static security headers. The Content-Security-Policy is not here — it needs
+ * a per-request nonce, so middleware.ts builds and attaches it.
  */
 const securityHeaders = [
-  // Clickjacking: nothing here should ever be framed.
+  // Clickjacking: nothing here should ever be framed. The full
+  // Content-Security-Policy (including frame-ancestors) is set per request in
+  // middleware.ts, because script-src needs a fresh nonce each time.
   { key: 'X-Frame-Options', value: 'DENY' },
-  { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
 
   // Stop the browser second-guessing declared content types.
   { key: 'X-Content-Type-Options', value: 'nosniff' },
