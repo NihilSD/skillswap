@@ -125,3 +125,12 @@ data class PlanUsage(
     @SerialName("messages_max") val messagesMax: Int? = null,
     @SerialName("messages_reset_at") val messagesResetAt: String? = null,
 )
+
+/** Row returned by get_user_rank(). */
+@Serializable
+data class UserRankRow(
+    val rank: Long,
+    @SerialName("completed_swaps") val completedSwaps: Long,
+    @SerialName("avg_rating") val avgRating: Double? = null,
+    @SerialName("ratings_count") val ratingsCount: Long = 0,
+)

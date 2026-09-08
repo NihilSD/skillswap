@@ -46,6 +46,21 @@ cannot bypass.
    ./gradlew :app:installDebug     # with a device or emulator attached
    ```
 
+## What is implemented
+
+| Screen | Notes |
+| --- | --- |
+| Sign in / sign up | Supabase Auth; handles the email-confirmation case; sign-in errors stay vague about which field was wrong |
+| Discover | Marketplace list; Premium gets search, category filter and best-match sort, free users see a locked filter card. The gate is inside `discover_listings()` — this client cannot bypass it |
+| Matches | Incoming and sent requests, accept / decline, mark completed, star rating sheet |
+| Messages | Conversation list and thread, **Supabase Realtime** `postgres_changes` INSERT subscription, daily limit banner that keeps your draft |
+| Leaderboard | `get_leaderboard()` and `get_user_rank()`, medals, star ratings, skill tags |
+| Profile | Emoji avatar picker, name and bio, skill listings with active toggle, wanted skills, and the plan usage widget fed by `get_plan_usage()` |
+| Pricing | Plan comparison; Checkout and the billing portal open in a Chrome Custom Tab so the app never touches card details |
+
+Navigation is a five-tab bottom bar (Discover, Matches, Messages, Ranks,
+Profile) with Pricing pushed on top from upgrade prompts.
+
 ## Project layout
 
 ```
@@ -55,9 +70,14 @@ app/src/main/kotlin/com/skillswap/app/
     Supabase.kt            The one Supabase client (anon key, RLS applies)
     Models.kt              Serializable mirrors of the Postgres schema
     PlanLimits.kt          Display-only limits + SQLSTATE -> friendly copy
+  navigation/Routes.kt     Route names and the bottom-tab list
+  data/repo/               PostgREST wrappers — no business logic, by design
   ui/
     theme/                 The web app's palette, type scale and shapes
-    SkillSwapApp.kt        Root composable
+    components/Common.kt   SsCard, SsPrimaryButton, SsChip, PlanBadge, ...
+    screens/               One package per feature
+    SessionViewModel.kt    Auth session + signed-in profile, one source of truth
+    SkillSwapApp.kt        Root composable and navigation graph
 ```
 
 ## Notes
@@ -68,3 +88,19 @@ app/src/main/kotlin/com/skillswap/app/
   never captured in a cloud backup.
 - Maven Central rate-limits some CI environments; `settings.gradle.kts` tries
   Google's official Central mirror first and falls back to `mavenCentral()`.
+- Cleartext HTTP is only permitted in **debug** builds, and only for
+  `10.0.2.2`, `127.0.0.1` and `localhost`, so a local Supabase stack works in
+  the emulator while release builds stay HTTPS-only.
+- The release build runs R8 with resource shrinking: 21 MB debug → **2.1 MB**
+  release. `proguard-rules.pro` keeps the kotlinx-serialization serializers.
+- Payments deliberately live on the web. Stripe Checkout in a Custom Tab keeps
+  card handling out of the app, and the plan flips here as soon as the webhook
+  updates `profiles.plan`.
+
+## Not done yet
+
+- No signing config — release builds are unsigned. Add a keystore and a
+  `signingConfigs` block before distributing.
+- Push notifications for new messages and swap requests.
+- Instrumented / screenshot tests. The app compiles and packages cleanly, but
+  it has not been exercised on a device from this environment.
