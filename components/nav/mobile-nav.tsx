@@ -21,8 +21,14 @@ export function MobileNav({
 }) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+  const [trackedPathname, setTrackedPathname] = useState(pathname)
 
-  useEffect(() => setOpen(false), [pathname])
+  // Navigating closes the menu. Adjusting during render avoids the extra
+  // render pass an effect would cause.
+  if (trackedPathname !== pathname) {
+    setTrackedPathname(pathname)
+    setOpen(false)
+  }
 
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''

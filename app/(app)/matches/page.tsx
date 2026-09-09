@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: 'Matches · SkillSwap' }
 
 export default async function MatchesPage() {
   const { profile } = await requireProfile()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // RLS already limits this to requests the viewer is part of.
   const { data: requestRows } = await supabase

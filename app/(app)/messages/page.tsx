@@ -16,10 +16,11 @@ export const metadata: Metadata = { title: 'Messages · SkillSwap' }
 export default async function MessagesPage({
   searchParams,
 }: {
-  searchParams: { with?: string }
+  searchParams: Promise<{ with?: string }>
 }) {
+  const params = await searchParams
   const { profile } = await requireProfile()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // RLS keeps this to messages the viewer sent or received.
   const { data: messageRows } = await supabase
@@ -37,7 +38,7 @@ export default async function MessagesPage({
   )
 
   // Someone arriving from "Message X" on an accepted match has no thread yet.
-  const requested = searchParams.with
+  const requested = params.with
   if (requested && requested !== profile.id && !partnerIds.includes(requested)) {
     partnerIds.push(requested)
   }
@@ -77,8 +78,8 @@ export default async function MessagesPage({
   ])
 
   const activeId =
-    searchParams.with && conversations.some((c) => c.partnerId === searchParams.with)
-      ? searchParams.with
+    params.with && conversations.some((c) => c.partnerId === params.with)
+      ? params.with
       : conversations[0]?.partnerId ?? null
 
   return (

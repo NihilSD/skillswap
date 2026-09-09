@@ -8,8 +8,9 @@ export const metadata: Metadata = { title: 'Pricing · SkillSwap' }
 export default async function PricingPage({
   searchParams,
 }: {
-  searchParams: { cancelled?: string }
+  searchParams: Promise<{ cancelled?: string }>
 }) {
+  const params = await searchParams
   const { profile } = await requireProfile()
 
   return (
@@ -19,7 +20,7 @@ export default async function PricingPage({
         subtitle="Every limit below is enforced in the database, so the free tier is honest."
       />
 
-      {searchParams.cancelled && (
+      {params.cancelled && (
         <p className="alert-info" role="status">
           <span aria-hidden>↩︎</span>
           <span>Checkout cancelled — you are still on the Free plan.</span>

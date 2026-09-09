@@ -9,7 +9,7 @@ import { PUBLIC_PROFILE_COLUMNS, type PublicProfile } from '@/lib/database.types
  * code can rely on a non-null profile without repeating the null checks.
  */
 export async function requireProfile(): Promise<{ userId: string; email: string; profile: PublicProfile }> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

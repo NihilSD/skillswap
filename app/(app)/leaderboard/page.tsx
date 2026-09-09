@@ -13,7 +13,7 @@ const MEDALS = ['🥇', '🥈', '🥉']
 
 export default async function LeaderboardPage() {
   const { profile } = await requireProfile()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Both are single aggregate queries in Postgres — no N+1 from here.
   const [{ data: rows }, { data: ownRankRows }] = await Promise.all([

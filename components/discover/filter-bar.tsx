@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { CATEGORIES, CATEGORY_EMOJI } from '@/lib/categories'
 import type { Plan } from '@/lib/plan'
 
@@ -27,8 +27,13 @@ export function FilterBar({
   const params = useSearchParams()
   const locked = plan !== 'premium'
   const [keyword, setKeyword] = useState(q)
+  const [trackedQ, setTrackedQ] = useState(q)
 
-  useEffect(() => setKeyword(q), [q])
+  // Resync when the URL changes, during render rather than in an effect.
+  if (trackedQ !== q) {
+    setTrackedQ(q)
+    setKeyword(q)
+  }
 
   function apply(next: Record<string, string>) {
     const search = new URLSearchParams(params.toString())
