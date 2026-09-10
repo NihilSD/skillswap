@@ -4,6 +4,15 @@ import com.skillswap.app.data.*
 
 /** Fixture data for the screenshot tests — no network involved. */
 object Fixtures {
+    /**
+     * Every timestamp here is a fixed instant.
+     *
+     * These fixtures previously used OffsetDateTime.now(), which made the
+     * rendered dates change from one day to the next — the screenshots
+     * recorded on one date could never match a verification run on another.
+     * Screenshot tests have to be deterministic to be worth anything.
+     */
+    private const val CREATED_AT = "2026-08-14T10:00:00Z"
     val freeProfile = Profile(
         id = "me",
         name = "Mara Ellis",
@@ -54,7 +63,11 @@ object Fixtures {
         listingsUsed = 1, listingsMax = 1,
         activeListingsUsed = 1, activeListingsMax = 1,
         requestsToday = 1, requestsMax = 1,
-        requestsResetAt = java.time.OffsetDateTime.now().plusHours(23).plusMinutes(20).toString(),
+        // Left null on purpose: a real reset timestamp renders a countdown
+        // relative to the current time, which cannot be pixel-stable. The
+        // countdown UI is covered by the message-limit shot, which passes a
+        // fixed label straight in.
+        requestsResetAt = null,
         messagesToday = 7, messagesMax = 10, messagesResetAt = null,
     )
 
@@ -67,8 +80,7 @@ object Fixtures {
         LeaderboardRow(6, "f", "Sam Okafor", "🧑‍💻", 1, null, 0, listOf("TypeScript & React")),
     )
 
-    private fun ts(hour: Int, minute: Int) =
-        java.time.OffsetDateTime.now().withHour(hour).withMinute(minute).withSecond(0).toString()
+    private fun ts(hour: Int, minute: Int) = "2026-08-14T%02d:%02d:00Z".format(hour, minute)
 
     val thread = listOf(
         Message("1", "a", "me", "Hey Mara! Happy to trade a pasta night for a guitar lesson.", ts(17, 30)),

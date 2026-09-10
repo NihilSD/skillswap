@@ -137,7 +137,7 @@ class ScreenshotTest {
             offeredSkillListingId = "l",
             message = message,
             status = status,
-            createdAt = java.time.OffsetDateTime.now().minusDays(1).toString(),
+            createdAt = "2026-08-14T10:00:00Z",
         ),
         incoming = incoming, otherId = "other", otherName = other, otherEmoji = emoji,
         skillTitle = skill, skillCategory = category, ratedByViewer = rated,
