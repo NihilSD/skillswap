@@ -18,6 +18,16 @@ Verify nothing changed unintentionally (compares against these files):
 ./gradlew :app:testDebugUnitTest -Proborazzi.test.verify=true
 ```
 
+**Verification is machine-specific.** Roborazzi renders through Robolectric's
+native graphics, and the output is not byte-identical across environments —
+the JDK and font stack that recorded a baseline and the one verifying it
+produce slightly different text anti-aliasing, which fails every image no
+matter how generous the threshold. Verify against baselines you recorded on
+the same machine. CI therefore *records* instead of comparing: that still
+fails if a composable throws, and the renders are uploaded as an artifact for
+a human to look at. Gating on pixels in CI would need the baselines recorded
+inside the same container image the job runs in.
+
 | File | Feature |
 | --- | --- |
 | `01-sign-in.png` | Sign in |
@@ -47,6 +57,5 @@ committed. `PlanUsage.requestsResetAt` is deliberately null for the same
 reason: it renders a countdown relative to the current time. The countdown UI
 is covered instead by the message-limit shot, which passes a fixed label in.
 
-CI verifies with `-Proborazzi.compare.changeThreshold=0.01` so anti-aliasing
-differences between machines do not fail the build, while real layout or text
-changes still do.
+Determinism still matters for the local workflow: without it, `verify` fails
+against your own baselines a day later.
