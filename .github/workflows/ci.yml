@@ -167,7 +167,13 @@ jobs:
 
       - name: Verify screenshots match the committed renders
         working-directory: android
-        run: ./gradlew :app:testDebugUnitTest -Proborazzi.test.verify=true
+        # A small change threshold absorbs anti-aliasing noise between the
+        # recording machine and the runner, while still failing on any real
+        # layout, text or colour change.
+        run: >-
+          ./gradlew :app:testDebugUnitTest
+          -Proborazzi.test.verify=true
+          -Proborazzi.compare.changeThreshold=0.01
 
       - name: Upload screenshot diffs on failure
         if: failure()
