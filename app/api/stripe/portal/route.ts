@@ -5,7 +5,7 @@ import { rateLimit, tooManyRequests } from '@/lib/rate-limit'
 
 /** Opens the Stripe Customer Portal so a premium member can manage billing. */
 export async function POST(request: Request) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

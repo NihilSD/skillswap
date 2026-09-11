@@ -15,10 +15,11 @@ export const metadata: Metadata = { title: 'Profile · SkillSwap' }
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: { upgraded?: string }
+  searchParams: Promise<{ upgraded?: string }>
 }) {
+  const params = await searchParams
   const { profile, email } = await requireProfile()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [{ data: listings }, { data: wanted }, { data: usageRows }] = await Promise.all([
     supabase
@@ -44,7 +45,7 @@ export default async function ProfilePage({
         action={<PlanBadge plan={profile.plan} className="px-3 py-1.5 text-xs" />}
       />
 
-      {searchParams.upgraded && (
+      {params.upgraded && (
         <p className="alert-success" role="status">
           <span aria-hidden>🎉</span>
           <span>

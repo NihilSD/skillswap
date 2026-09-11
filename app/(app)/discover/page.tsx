@@ -12,17 +12,22 @@ export const metadata: Metadata = { title: 'Discover · SkillSwap' }
 
 type SearchParams = { q?: string; category?: string; sort?: string }
 
-export default async function DiscoverPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function DiscoverPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>
+}) {
+  const params = await searchParams
   const { profile } = await requireProfile()
-  const supabase = createClient()
+  const supabase = await createClient()
   const premium = profile.plan === 'premium'
 
   const category =
-    searchParams.category && CATEGORIES.includes(searchParams.category as never)
-      ? searchParams.category
+    params.category && CATEGORIES.includes(params.category as never)
+      ? params.category
       : null
-  const sort = searchParams.sort === 'match' ? 'match' : 'newest'
-  const q = searchParams.q?.trim() || null
+  const sort = params.sort === 'match' ? 'match' : 'newest'
+  const q = params.q?.trim() || null
 
   // The filter gate lives inside discover_listings(): it reads the caller's
   // plan and drops these arguments for free users. Passing them through

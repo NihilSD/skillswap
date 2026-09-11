@@ -9,7 +9,7 @@ import { rateLimit, tooManyRequests } from '@/lib/rate-limit'
  * webhook can match the completed payment back to a profile.
  */
 export async function POST(request: Request) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

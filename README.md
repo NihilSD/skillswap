@@ -7,7 +7,7 @@ Two clients, one backend:
 
 | | |
 | --- | --- |
-| **Web** | Next.js 14 (App Router) · TypeScript · Tailwind CSS |
+| **Web** | Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS |
 | **Android** | Kotlin · Jetpack Compose · Material 3 — see [`android/`](android/) |
 | **Backend** | Supabase — Postgres, Auth, Realtime, Row Level Security |
 | **Billing** | Stripe Checkout + webhook |

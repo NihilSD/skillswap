@@ -117,6 +117,5 @@ holds with their own session token and `curl`.
   that actually matters — is blocked.
 - **Rate limiting is per instance.** See above; move it to Redis if you need a
   hard global limit.
-- **Next.js 14.2.35 carries open advisories** (SSRF in Server Actions on custom
-  servers, cache confusion, Server Function endpoint disclosure) that are only
-  fixed in Next 16. The plan pinned Next 14; upgrading is a deliberate call.
+- ~~**Next.js 14.2.35 carries open advisories**~~ — resolved by upgrading to
+  Next 16 / React 19. `npm audit --omit=dev` now reports **0 vulnerabilities**.
