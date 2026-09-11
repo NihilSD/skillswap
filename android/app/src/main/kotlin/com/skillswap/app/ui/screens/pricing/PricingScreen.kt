@@ -13,19 +13,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.skillswap.app.BuildConfig
 import com.skillswap.app.data.Profile
 import com.skillswap.app.ui.components.*
 import com.skillswap.app.ui.theme.SkillSwapTheme
 
-/** Where the hosted web app lives — Checkout and the billing portal run there. */
-private const val WEB_ORIGIN = "https://skillswap.example.com"
+/**
+ * Where the hosted web app lives — Checkout and the billing portal run there.
+ * Supplied through local.properties / CI as WEB_ORIGIN; blank means "not
+ * configured yet", and the UI says so instead of opening a dead link.
+ */
+private val WEB_ORIGIN: String get() = BuildConfig.WEB_ORIGIN
 
 @Composable
 fun PricingScreen(profile: Profile, onBack: () -> Unit) {
     val context = LocalContext.current
     val primary = MaterialTheme.colorScheme.primary.toArgb()
+    val billingConfigured = WEB_ORIGIN.isNotBlank()
 
     fun openWeb(path: String) {
+        if (!billingConfigured) return
         val intent = CustomTabsIntent.Builder()
             .setDefaultColorSchemeParams(
                 androidx.browser.customtabs.CustomTabColorSchemeParams.Builder()
@@ -94,9 +101,28 @@ fun PricingScreen(profile: Profile, onBack: () -> Unit) {
             Spacer(Modifier.height(18.dp))
 
             if (profile.isPremium) {
-                SsSecondaryButton("Manage billing", { openWeb("/profile") }, Modifier.fillMaxWidth())
+                SsSecondaryButton(
+                    "Manage billing",
+                    { openWeb("/profile") },
+                    Modifier.fillMaxWidth(),
+                    enabled = billingConfigured,
+                )
             } else {
-                SsPrimaryButton("Upgrade to Premium", { openWeb("/pricing") }, Modifier.fillMaxWidth())
+                SsPrimaryButton(
+                    "Upgrade to Premium",
+                    { openWeb("/pricing") },
+                    Modifier.fillMaxWidth(),
+                    enabled = billingConfigured,
+                )
+            }
+
+            if (!billingConfigured) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "Billing is not configured in this build. Set WEB_ORIGIN in local.properties to your deployed site.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = SkillSwapTheme.colors.muted,
+                )
             }
         }
 

@@ -215,6 +215,9 @@ Local development only — never run the seed against a hosted project.
 
 ## Deployment checklist
 
+Before deploying, read [`docs/go-live.md`](docs/go-live.md) — it separates what
+has been proven by execution from what still needs a human with a browser.
+
 ### Supabase (hosted project)
 
 - [ ] Create the project and copy the Project URL, anon key and service_role key.

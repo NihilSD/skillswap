@@ -63,6 +63,12 @@ android {
 
         buildConfigField("String", "SUPABASE_URL", "\"${secret("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${secret("SUPABASE_ANON_KEY")}\"")
+
+        // Where the web app is deployed. Stripe Checkout and the billing
+        // portal run there, so this must point at the real domain before a
+        // release build ships — the app refuses to open billing if it is unset
+        // rather than sending people to a dead link.
+        buildConfigField("String", "WEB_ORIGIN", "\"${secret("WEB_ORIGIN")}\"")
     }
 
     buildTypes {
